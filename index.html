@@ -1129,7 +1129,7 @@
 
         /* ================= Ambient audio (generated, no files) ================= */
         const Sound = (() => {
-            let ctx, master, bus, songGain, songTimer, birdTimer, started = false, muted = false;
+            let ctx, master, bus, songGain, birdTimer, started = false, muted = false;
             const LEVEL = 0.8;
             const midiF = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -1195,7 +1195,8 @@
             const SONG_BEATS = 25, BEAT = 0.62;
             const PENTA = [72, 74, 76, 79, 81, 84, 86, 88];
 
-            function songLoop(delay) {
+            // Plays the song once (on opening the gift and after the wish), then leaves the garden sounds
+            function playSong(delay) {
                 if (songGain) songGain.gain.setTargetAtTime(0, ctx.currentTime, 0.2);
                 songGain = ctx.createGain();
                 songGain.connect(bus);
@@ -1205,12 +1206,9 @@
                     const next = i < CHORDS.length - 1 ? CHORDS[i + 1][0] : SONG_BEATS;
                     pad(SHAPES[c], t0 + b * BEAT, (next - b) * BEAT, songGain);
                 });
-                // dreamy sparkles in the quiet gap before the next round
-                const gap = t0 + SONG_BEATS * BEAT + 1.5;
-                let t = gap;
-                for (let k = 0; k < 6; k++) { pling(pick(PENTA), t, 0.06, songGain); t += rand(1.2, 2.2); }
-                clearTimeout(songTimer);
-                songTimer = setTimeout(() => songLoop(0.1), (delay + SONG_BEATS * BEAT + 14) * 1000);
+                // a few soft sparkles as the song fades into the garden
+                let t = t0 + SONG_BEATS * BEAT + 1.2;
+                for (let k = 0; k < 3; k++) { pling(pick(PENTA), t, 0.05, songGain); t += rand(1, 1.8); }
             }
 
             function wind() {
@@ -1285,7 +1283,7 @@
                     bus.connect(master);
                     bus.connect(rev);
                     wind();
-                    songLoop(1.5);
+                    playSong(1.5);
                     birdTimer = setTimeout(chirp, 2500);
                     document.addEventListener('visibilitychange', () => {
                         if (document.hidden) ctx.suspend(); else ctx.resume();
@@ -1296,7 +1294,7 @@
                     if (!started) return;
                     [72, 76, 79, 84, 88, 91].forEach((m, i) => pling(m, ctx.currentTime + i * 0.09, 0.13));
                 },
-                replaySong() { if (started) songLoop(1.2); },
+                replaySong() { if (started) playSong(1.2); },
                 toggle() {
                     if (!started) return false;
                     muted = !muted;
